@@ -12,22 +12,12 @@ fn bind_listener(uri: &str) -> Result<TcpListener, Error> {
    Ok(listener)
 }
 
-fn collect_stream(listener: TcpListener) {
+fn collect_stream(listener: TcpListener) -> Result<()> {
     for stream in listener.incoming() {
-        let stream_unwrapped = match stream {
-            Ok(stream) => stream,
-            Err(e) => {
-                eprintln!("unable to get stream: {}", e);
-                panic!("unable to process");
-            }
-        };
-        match handle_connection(stream_unwrapped) {
-            Ok(()) => Ok(()),
-            Err(e) => Err({
-                eprintln!("unable to hadnle connection: {}", e);
-            })
-        };
+        let stream = stream?;
+        handle_connection(stream)?;
     }
+    Ok(())
 }
 
 //fn collect_stream(listener: TcpListener) -> Result<Vec<TcpStream>, Error> {
@@ -69,15 +59,12 @@ fn main() {
             panic!("was unable to bind listener: {}", e);
         }
     };
-    let connections = collect_stream(listener);
-//    match handle_connections(connections) {
-//        Ok(()) => {
-//            println!("successfully handled connections");
-//        }
-//        Err(e) => {
-//            panic!("was unable to handle conenctions: {}", e);
-//        }
-//    }
+    let connections = match collect_stream(listener) {
+        Ok(connections) => connections,
+        Err(e) => {
+            panic!("was unable to retrieve conenctions: {}", e);
+        }
+    }; 
 //    let handle = thread::spawn(move || {
 //        match collect_stream(listener) {
 //            Ok(connections) => {
