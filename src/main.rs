@@ -32,6 +32,13 @@ fn collect_stream(listener: TcpListener) -> Result<()> {
 //    Ok(stream_vec)
 //}
 
+fn respond(stream: &mut TcpStream) -> Result<()> {
+    let response = "HTTP/1.1 200 OK\r\n\r\n";
+    stream.write(response.as_bytes())?;
+    stream.flush()?;
+    Ok(())
+}
+
 fn handle_connection(mut stream: TcpStream) -> Result<()> {
     println!("connection being handled");
     let mut buffer = [0;1024]; 
@@ -40,6 +47,7 @@ fn handle_connection(mut stream: TcpStream) -> Result<()> {
        "Request: {}",
         String::from_utf8_lossy(&buffer[..])
     );
+    respond(&mut stream)?;
     Ok(())
 }
 //
