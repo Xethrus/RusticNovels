@@ -12,17 +12,35 @@ fn bind_listener(uri: &str) -> Result<TcpListener, Error> {
    Ok(listener)
 }
 
-fn collect_stream(listener: TcpListener) -> Result<Vec<TcpStream>, Error> {
-
-    let mut stream_vec: Vec<TcpStream> = Vec::new();
-    println!("listening...");
+fn collect_stream(listener: TcpListener) {
     for stream in listener.incoming() {
-        let stream = stream?;
-        println!("connection established");
-        stream_vec.push(stream);
-    }    
-    Ok(stream_vec)
+        let stream_unwrapped = match stream {
+            Ok(stream) => stream,
+            Err(e) => {
+                eprintln!("unable to get stream: {}", e);
+                panic!("unable to process");
+            }
+        };
+        match handle_connection(stream_unwrapped) {
+            Ok(()) => Ok(()),
+            Err(e) => Err({
+                eprintln!("unable to hadnle connection: {}", e);
+            })
+        };
+    }
 }
+
+//fn collect_stream(listener: TcpListener) -> Result<Vec<TcpStream>, Error> {
+//    let mut stream_vec: Vec<TcpStream> = Vec::new();
+//    println!("listening...");
+//    for stream in listener.incoming() {
+//        let stream = stream?;
+//        println!("connection established");
+//        stream_vec.push(stream);
+//        //this doesnt ever return because im returning a stream vec once it is "completed"
+//    }    
+//    Ok(stream_vec)
+//}
 
 fn handle_connection(mut stream: TcpStream) -> Result<()> {
     println!("connection being handled");
@@ -34,15 +52,15 @@ fn handle_connection(mut stream: TcpStream) -> Result<()> {
     );
     Ok(())
 }
-
-fn handle_connections(stream_vec: Vec<TcpStream>) -> Result<()> {
-    println!("starting handling loop");
-    for stream in stream_vec {
-        handle_connection(stream)?;
-    }
-    Ok(())
-}
-
+//
+//fn handle_connections(stream_vec: Vec<TcpStream>) -> Result<()> {
+//    println!("starting handling loop");
+//    for stream in stream_vec {
+//        handle_connection(stream)?;
+//    }
+//    Ok(())
+//}
+//
 
 fn main() {
     let listener = match bind_listener("127.0.0.1:7878") {
@@ -51,20 +69,15 @@ fn main() {
             panic!("was unable to bind listener: {}", e);
         }
     };
-    let connections = match collect_stream(listener) {
-        Ok(connections) => connections,
-        Err(e) => {
-            panic!("was unable to retrieve conenctions: {}", e);
-        }
-    }; 
-    match handle_connections(connections) {
-        Ok(()) => {
-            println!("successfully handled connections");
-        }
-        Err(e) => {
-            panic!("was unable to handle conenctions: {}", e);
-        }
-    }
+    let connections = collect_stream(listener);
+//    match handle_connections(connections) {
+//        Ok(()) => {
+//            println!("successfully handled connections");
+//        }
+//        Err(e) => {
+//            panic!("was unable to handle conenctions: {}", e);
+//        }
+//    }
 //    let handle = thread::spawn(move || {
 //        match collect_stream(listener) {
 //            Ok(connections) => {
