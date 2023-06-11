@@ -3,7 +3,8 @@ use std::net::TcpStream;
 use std::io::prelude::*;
 use anyhow::Result;
 use anyhow::Error;
-use std::thread;
+//use std::thread;
+use std::fs;
 
 
 fn bind_listener(uri: &str) -> Result<TcpListener, Error> {
@@ -20,23 +21,21 @@ fn collect_stream(listener: TcpListener) -> Result<()> {
     Ok(())
 }
 
-//fn collect_stream(listener: TcpListener) -> Result<Vec<TcpStream>, Error> {
-//    let mut stream_vec: Vec<TcpStream> = Vec::new();
-//    println!("listening...");
-//    for stream in listener.incoming() {
-//        let stream = stream?;
-//        println!("connection established");
-//        stream_vec.push(stream);
-//        //this doesnt ever return because im returning a stream vec once it is "completed"
-//    }    
-//    Ok(stream_vec)
-//}
-
 fn respond(stream: &mut TcpStream) -> Result<()> {
-    let response = "HTTP/1.1 200 OK\r\n\r\n";
+    let content = get_html("../index.html")?;
+    let response = format!(
+        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
+        content.len(),
+        content
+    );
     stream.write(response.as_bytes())?;
     stream.flush()?;
     Ok(())
+}
+
+fn get_html(file_name: &str) -> Result<String> {
+    let contents = fs::read_to_string(file_name)?;
+    Ok(contents)
 }
 
 fn handle_connection(mut stream: TcpStream) -> Result<()> {
@@ -50,15 +49,6 @@ fn handle_connection(mut stream: TcpStream) -> Result<()> {
     respond(&mut stream)?;
     Ok(())
 }
-//
-//fn handle_connections(stream_vec: Vec<TcpStream>) -> Result<()> {
-//    println!("starting handling loop");
-//    for stream in stream_vec {
-//        handle_connection(stream)?;
-//    }
-//    Ok(())
-//}
-//
 
 fn main() {
     let listener = match bind_listener("127.0.0.1:7878") {
@@ -73,24 +63,6 @@ fn main() {
             panic!("was unable to retrieve conenctions: {}", e);
         }
     }; 
-//    let handle = thread::spawn(move || {
-//        match collect_stream(listener) {
-//            Ok(connections) => {
-//                match handle_connections(connections) {
-//                    Ok(()) => {
-//                        println!("successfully handled connections");
-//                    }
-//                    Err(e) => {
-//                        panic!("was unable to handle connections: {}", e);
-//                    }
-//                }
-//            }
-//            Err(e) => {
-//                panic!("was unable to retrieve connections: {}", e);
-//            }
-//        }
-//    });
-//    handle.join().expect("failed to join thread");
 }
 
 
