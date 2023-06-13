@@ -21,8 +21,9 @@ fn collect_stream(listener: TcpListener) -> Result<()> {
     Ok(())
 }
 
-fn respond(stream: &mut TcpStream) -> Result<()> {
-    let content = get_html("../index.html")?;
+fn respond(stream: &mut TcpStream, html_file_name: &str) -> Result<()> {
+    let wanted_html = format!("../{}",html_file_name);
+    let content = get_html(wanted_html.as_str())?;
     let response = format!(
         "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
         content.len(),
@@ -31,6 +32,17 @@ fn respond(stream: &mut TcpStream) -> Result<()> {
     stream.write(response.as_bytes())?;
     stream.flush()?;
     Ok(())
+}
+
+fn check_request(stream: &mut TcpStream, request_buffer: [u8; 1024]) -> Result<()> {
+    let expected_request_start = b"GET / HTTP/1.1\r\n";
+    if request_buffer.starts_with(expected_request_start) {
+        respond(stream, "index.html");
+        Ok(())
+    } else {
+        respond(stream, "404.html");
+        Ok(())
+    }
 }
 
 fn get_html(file_name: &str) -> Result<String> {
@@ -46,7 +58,7 @@ fn handle_connection(mut stream: TcpStream) -> Result<()> {
        "Request: {}",
         String::from_utf8_lossy(&buffer[..])
     );
-    respond(&mut stream)?;
+    check_request(&mut stream, buffer)?;
     Ok(())
 }
 
